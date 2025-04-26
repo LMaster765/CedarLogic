@@ -84,6 +84,7 @@ public:
 	int lastTimeMod;
 	int lastNumSteps;
 	int lastTime;
+	int microOffset = 0;
 	
 private:
 	unordered_map< unsigned long, guiGate* > gateList;

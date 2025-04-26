@@ -568,12 +568,13 @@ void GUICanvas::OnMouseMove( GLdouble glX, GLdouble glY, bool ShiftDown, bool Ct
 		wxGetApp().mexMessages.Unlock();
 		if (gCircuit->panic) return;
 		// Do function of number of milliseconds that passed since last step
-		gCircuit->lastTime = wxGetApp().appSystemTime.Time();
+		gCircuit->lastTime = wxGetApp().appSystemTime.TimeInMicro().GetValue() + gCircuit->microOffset;
 		gCircuit->lastTimeMod = wxGetApp().timeStepMod;
 		gCircuit->lastNumSteps = wxGetApp().appSystemTime.Time() / wxGetApp().timeStepMod;
-		gCircuit->sendMessageToCore(klsMessage::Message(klsMessage::MT_STEPSIM, new klsMessage::Message_STEPSIM(wxGetApp().appSystemTime.Time() / wxGetApp().timeStepMod)));
+		gCircuit->sendMessageToCore(klsMessage::Message(klsMessage::MT_STEPSIM, new klsMessage::Message_STEPSIM(gCircuit->lastTime / wxGetApp().timeStepMod)));
 		gCircuit->setSimulate(false);
-		wxGetApp().appSystemTime.Start(wxGetApp().appSystemTime.Time() % wxGetApp().timeStepMod);
+		gCircuit->microOffset = (wxGetApp().appSystemTime.TimeInMicro().GetValue() + gCircuit->microOffset) % 1000;
+		wxGetApp().appSystemTime.Start((gCircuit->lastTime % wxGetApp().timeStepMod) / 1000);
 		shouldRender = true;
 	}
 
@@ -1282,12 +1283,13 @@ void GUICanvas::Update() {
 		wxGetApp().mexMessages.Unlock();
 		if (gCircuit->panic) return;
 		// Do function of number of milliseconds that passed since last step
-		gCircuit->lastTime = wxGetApp().appSystemTime.Time();
+		gCircuit->lastTime = wxGetApp().appSystemTime.TimeInMicro().GetValue() + gCircuit->microOffset;
 		gCircuit->lastTimeMod = wxGetApp().timeStepMod;
 		gCircuit->lastNumSteps = wxGetApp().appSystemTime.Time() / wxGetApp().timeStepMod;
-		gCircuit->sendMessageToCore(klsMessage::Message(klsMessage::MT_STEPSIM, new klsMessage::Message_STEPSIM(wxGetApp().appSystemTime.Time() / wxGetApp().timeStepMod)));
+		gCircuit->sendMessageToCore(klsMessage::Message(klsMessage::MT_STEPSIM, new klsMessage::Message_STEPSIM(gCircuit->lastTime / wxGetApp().timeStepMod)));
 		gCircuit->setSimulate(false);
-		wxGetApp().appSystemTime.Start(wxGetApp().appSystemTime.Time() % wxGetApp().timeStepMod);
+		gCircuit->microOffset = (wxGetApp().appSystemTime.TimeInMicro().GetValue() + gCircuit->microOffset) % 1000;
+		wxGetApp().appSystemTime.Start((gCircuit->lastTime % wxGetApp().timeStepMod) / 1000);
 	}
 
 	minimap->setLists( &gateList, &wireList );

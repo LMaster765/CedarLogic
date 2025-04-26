@@ -190,10 +190,11 @@ MainFrame::MainFrame(const wxString& title, string cmdFilename)
 	toolBar->AddSeparator();
 	toolBar->AddTool(Tool_Pause, "Pause/Resume", *bmp[9], "Pause/Resume", wxITEM_CHECK);
 	toolBar->AddTool(Tool_Step, "Step", *bmp[10], "Step");
-	timeStepModSlider = new wxSlider(toolBar, wxID_ANY, wxGetApp().timeStepMod, 1, 500, wxDefaultPosition, wxSize(125,-1), wxSL_HORIZONTAL|wxSL_AUTOTICKS);
+	wxGetApp().timeStepMod = 16667;
+	timeStepModSlider = new wxSlider(toolBar, wxID_ANY, wxGetApp().timeStepMod, 1000, 500000, wxDefaultPosition, wxSize(125,-1), wxSL_HORIZONTAL|wxSL_AUTOTICKS);
 	wxString oss;
-	oss << wxGetApp().timeStepMod << "ms";
-	timeStepModVal = new wxStaticText(toolBar, wxID_ANY, oss, wxDefaultPosition, wxSize(45, -1), wxSUNKEN_BORDER | wxALIGN_RIGHT | wxST_NO_AUTORESIZE);
+	oss << (wxGetApp().timeStepMod / 1000.0) << "ms";
+	timeStepModVal = new wxStaticText(toolBar, wxID_ANY, oss, wxDefaultPosition, wxSize(65, -1), wxSUNKEN_BORDER | wxALIGN_RIGHT | wxST_NO_AUTORESIZE);
 	toolBar->AddControl( timeStepModSlider );
 	toolBar->AddControl( timeStepModVal );
 	toolBar->AddSeparator();
@@ -638,12 +639,13 @@ void MainFrame::OnTimer(wxTimerEvent& event) {
 	wxGetApp().appSystemTime.Pause();
 	if (gCircuit->panic) return;
 	// Do function of number of milliseconds that passed since last step
-	gCircuit->lastTime = wxGetApp().appSystemTime.Time();
+	gCircuit->lastTime = wxGetApp().appSystemTime.TimeInMicro().GetValue() + gCircuit->microOffset;
 	gCircuit->lastTimeMod = wxGetApp().timeStepMod;
 	gCircuit->lastNumSteps = wxGetApp().appSystemTime.Time() / wxGetApp().timeStepMod;
-	gCircuit->sendMessageToCore(klsMessage::Message(klsMessage::MT_STEPSIM, new klsMessage::Message_STEPSIM(wxGetApp().appSystemTime.Time() / wxGetApp().timeStepMod)));
-	currentCanvas->getCircuit()->setSimulate(false);
-	wxGetApp().appSystemTime.Start(wxGetApp().appSystemTime.Time() % wxGetApp().timeStepMod);
+	gCircuit->sendMessageToCore(klsMessage::Message(klsMessage::MT_STEPSIM, new klsMessage::Message_STEPSIM(gCircuit->lastTime / wxGetApp().timeStepMod)));
+	gCircuit->setSimulate(false);
+	gCircuit->microOffset = (wxGetApp().appSystemTime.TimeInMicro().GetValue() + gCircuit->microOffset) % 1000;
+	wxGetApp().appSystemTime.Start((gCircuit->lastTime % wxGetApp().timeStepMod) / 1000);
 }
 
 void MainFrame::OnIdle(wxTimerEvent& event) {
@@ -864,7 +866,7 @@ void MainFrame::OnHelpContents(wxCommandEvent& event) {
 
 void MainFrame::OnTimeStepModSlider(wxScrollEvent& event) {
 	wxString oss;
-	oss << wxGetApp().timeStepMod << "ms";
+	oss << (wxGetApp().timeStepMod / 1000.0) << "ms";
 	wxGetApp().timeStepMod = timeStepModSlider->GetValue();
 	timeStepModVal->SetLabel(oss);
 }
